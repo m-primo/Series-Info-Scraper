@@ -1,2 +1,0 @@
-- make a watch list:
-  -- save my watch list in a json file and make an algorithm to check it.

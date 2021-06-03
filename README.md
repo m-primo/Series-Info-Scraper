@@ -3,8 +3,8 @@ Get a tv series information from [IMDb](https://imdb.com/) or [Rotten Tomatoes](
 
 
 # Screenshots
-![screenshot](https://lh3.googleusercontent.com/-xqC9CFHUxiY/YLjNWlh6zeI/AAAAAAAAGrk/iR7IzTrCglkW_oq9xspFIqBqkoNeexOTwCNcBGAsYHQ/s0/Screenshot%2B2021-06-03%2B143614.png)
-
+![screenshot#1](https://lh3.googleusercontent.com/-xqC9CFHUxiY/YLjNWlh6zeI/AAAAAAAAGrk/iR7IzTrCglkW_oq9xspFIqBqkoNeexOTwCNcBGAsYHQ/s0/Screenshot%2B2021-06-03%2B143614.png)
+![screenshot#2](https://lh3.googleusercontent.com/-Jlc3J-fAyXU/YLkavGEd-QI/AAAAAAAAGrs/2-y8NFmBzcMG-JdEimJFNBN_hBtLaZydQCNcBGAsYHQ/s0/Screenshot%2B2021-06-03%2B200826.png)
 
 # Installation
 Before the installation you'll need to have:
@@ -25,19 +25,32 @@ cd Series-Info-Scraper
 ```bash
 pip install -r requirements.txt
 ```
-6. Run the script.
+6. Run.
 ```bash
 python app.py
 ```
-You can also enter an argument of the title.
+
+# Run
+Run the script.
+```bash
+python app.py
+```
+You can also enter an argument of the series title:
 ```bash
 python app.py -s [title]
 ```
-
+If you want to check your watch list or add a title to a watch list:
+```bash
+python app.py -w [watchlist_filename]
+```
+If you want to create multiple watch lists, you have to copy `watchlist.json` and name it whatever your want.
+**Important Notice: Do not leave the watch list file empty. The file has to be json encoded.**
 
 # TO-DO
 - [x] More than a website.
-- [ ] Watch list and save it in a json file.
+- [x] Watch list and save it in a json file.
+- [x] More than a watchlist.
+- [ ] Notification System/Background Process.
 - [ ] User interface (web or gui).
 
 

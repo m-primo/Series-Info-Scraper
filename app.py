@@ -9,6 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 from pprint import pprint
 # ==============================> Core <==============================
+WATCHLIST_FILE = "watchlist.json"
 def ViewSeriesInformation(title, id_, rate, last_aired_season, episodes):
     print("")
     print("===> TV Series Information <===")
@@ -24,6 +25,44 @@ def ViewSeriesCatchedInfo(title, id_):
     print("[*] Please wait while getting the rest of the information...")
     print("")
 # ==============================> Classes <==============================
+class Object(object):
+    pass
+class JSONfile():
+    def __init__(self, filename):
+        self.filename = filename
+    def List(self):
+        with open(self.filename, 'r') as file:
+            content = file.read()
+        return json.loads(content)
+    def Append(self, dataobj):
+        l = self.List()
+        l.append(dataobj)
+        j = json.dumps(l, indent=4)
+        with open(self.filename, 'w') as file:
+            file.write(j)
+        return l
+    def Contains(self, filter):
+        for item in self.List():
+            if filter(item):
+                return True
+        return False
+class WatchList():
+    def __init__(self, filename=WATCHLIST_FILE):
+        self.filename = filename
+    def List(self):
+        jf = JSONfile(self.filename)
+        return jf.List()
+    def Append(self, title):
+        title = title.lower()
+        jf = JSONfile(self.filename)
+        if not self.Exist(title):
+            return jf.Append({'title': title})
+        else:
+            return '[!] Title Already Exist'
+    def Exist(self, title):
+        title = title.lower()
+        jf = JSONfile(self.filename)
+        return jf.Contains(lambda series: series['title'] == title)
 class IMDbScrapper():
     @staticmethod
     def get_rate(tv_id):
@@ -174,31 +213,98 @@ def get_first_char(text):
 def get_args():
     import argparse
     parser = argparse.ArgumentParser(description='Get a tv series information from IMDb or Rotten Tomatoes.')
-    parser.add_argument('-s', '--series', help='Series Name')
+    parser.add_argument('-s', '--series', help='Series Title')
+    parser.add_argument('-w', '--watch-list', help='Watch List Filename')
     args = parser.parse_args()
     return args
 
-def main(args=None):
-    if not args.series: series_input = input("[?] Series Name: ")
-    else: series_input = args.series
-    if series_input:
-        what_site = input("[?] Choose a website to get the data from ([I]mdb / [R]ottenTomatoes): ")
+def mainMenu():
+    print("")
+    print("===> Main Menu <===")
+    print("1. Check a series title")
+    print("2. Check a watch list or add a title to a watch list")
+    print("3. Check the titles in a watchlist")
+    print("0. Exit")
+    print("")
+    print("[>] Please enter a number.")
+    menu = input("[?] ")
+    print("")
 
-        if get_first_char(what_site) == "i":
+    menu_args = Object()
+    menu_args.series = None
+    menu_args.watch_list = None
+
+    if menu == '0':
+        sys.exit(0)
+    elif menu == '1':
+        series_title = input("[?] Series Title: ")
+        menu_args.series = series_title
+    elif menu == '2':
+        watch_list_filename = input("[?] Watch List Filename (default: "+WATCHLIST_FILE+"): ")
+        if not watch_list_filename:
+            watch_list_filename = WATCHLIST_FILE
+        menu_args.watch_list = watch_list_filename
+    elif menu == '3':
+        watch_list_filename = input("[?] Watch List Filename (default: "+WATCHLIST_FILE+"): ")
+        if not watch_list_filename:
+            watch_list_filename = WATCHLIST_FILE
+        wl = WatchList(watch_list_filename)
+
+        what_site = input("[?] Choose a website to get the data from ([I]mdb / [R]ottenTomatoes) (default: imdb): ")
+        if not what_site:
+            Scrapper = IMDbScrapper()
+        elif get_first_char(what_site) == "i":
             Scrapper = IMDbScrapper()
         elif get_first_char(what_site) == "r":
             Scrapper = RottenTomatoesScrapper()
-        else:
-            sys.exit('[x] Input Error!')
 
         print("[*] Please wait...")
         print("")
-        Scrapper.ScrapeSeries(series_input)
+        for series in wl.List():
+            print("---",series['title'],"---")
+            print("[*] Please wait...")
+            print("")
+            Scrapper.ScrapeSeries(series['title'])
+            print("")
+        print("[+] Done. Please scroll up to see the results.")
     else:
-        print("[x] No Input!")
+        menu_args = None
+        print("[!] Invalid Number! Please enter a valid number from the list.")
+        print("")
+        return mainMenu()
+
+    main(menu_args)
+
+def main(args=None):
+    if args.watch_list:
+        wl = WatchList(args.watch_list)
+        print("===> Your WatchList <===")
+        print(wl.List())
+        print("")
+        print("Add a series to the watch list or just click enter to cancel.")
+        title_input = input("[?] Please enter the title: ")
+        if title_input: print(wl.Append(title_input))
+    elif args.series:
+        if args.series:
+            what_site = input("[?] Choose a website to get the data from ([I]mdb / [R]ottenTomatoes): ")
+
+            if get_first_char(what_site) == "i":
+                Scrapper = IMDbScrapper()
+            elif get_first_char(what_site) == "r":
+                Scrapper = RottenTomatoesScrapper()
+            else:
+                sys.exit('[x] Input Error!')
+
+            print("[*] Please wait...")
+            print("")
+            Scrapper.ScrapeSeries(args.series)
+        else:
+            print("[x] No Input!")
+    else:
+        mainMenu()
 
 def Run():
-    main(get_args())
+    sys.exit(main(get_args()))
 
 if __name__ == '__main__':
-    sys.exit(Run())
+    Run()
