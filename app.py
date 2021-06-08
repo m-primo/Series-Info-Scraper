@@ -3,13 +3,25 @@
 # Get a tv series information from IMDb or Rotten Tomatoes.
 # (C) 2021 Primo. BSD-2-Clause License. (https://github.com/m-primo/Series-Info-Scraper)
 # ==============================> Include <==============================
+import os
 import sys
 import json
 import requests
 from bs4 import BeautifulSoup
-from pprint import pprint
+import pprint
 # ==============================> Core <==============================
-WATCHLIST_FILE = "watchlist.json"
+DEFAULT_WATCHLIST_FILE = "default-watchlist"
+def getDefaultWatchList():
+    with open(DEFAULT_WATCHLIST_FILE, 'rt') as file:
+        WATCHLIST_FILE = file.read().split("\n")[0]
+    return WATCHLIST_FILE
+
+def checkWatchList(watchlist):
+    return os.path.exists(watchlist)
+
+WATCHLIST_FILE = getDefaultWatchList()
+
+pp = pprint.PrettyPrinter(indent=4, compact=False, sort_dicts=False)
 def ViewSeriesInformation(title, id_, rate, last_aired_season, episodes):
     print("")
     print("===> TV Series Information <===")
@@ -18,7 +30,7 @@ def ViewSeriesInformation(title, id_, rate, last_aired_season, episodes):
     print("[>] Rate:", rate)
     print("[>] Last Aired Season:", last_aired_season)
     print("[>] Episodes Information:")
-    pprint(episodes)
+    pp.pprint(episodes)
     print("")
 def ViewSeriesCatchedInfo(title, id_):
     print("[+] Found. Series:",title,"- ID:",id_)
@@ -30,6 +42,11 @@ class Object(object):
 class JSONfile():
     def __init__(self, filename):
         self.filename = filename
+    def New(self, dataobj):
+        data = json.dumps(dataobj, indent=4)
+        with open(self.filename, 'w') as file:
+            file.write(data)
+        return data
     def List(self):
         with open(self.filename, 'r') as file:
             content = file.read()
@@ -42,13 +59,28 @@ class JSONfile():
             file.write(j)
         return l
     def Contains(self, filter):
-        for item in self.List():
+        items = self.List()
+        for item in items:
             if filter(item):
                 return True
         return False
+    def Remove(self, filter):
+        items = self.List()
+        flag = False
+        for i in range(len(items)):
+            item = items[i]
+            if filter(item):
+                del items[i]
+                flag = True
+                break
+        new_list = json.loads(self.New(items))
+        return [flag, new_list]
 class WatchList():
     def __init__(self, filename=WATCHLIST_FILE):
         self.filename = filename
+    def New(self, data):
+        jf = JSONfile(self.filename)
+        return js.New(data)
     def List(self):
         jf = JSONfile(self.filename)
         return jf.List()
@@ -63,6 +95,10 @@ class WatchList():
         title = title.lower()
         jf = JSONfile(self.filename)
         return jf.Contains(lambda series: series['title'] == title)
+    def Remove(self, title):
+        title = title.lower()
+        jf = JSONfile(self.filename)
+        return jf.Remove(lambda series: series['title'].lower() == title)
 class IMDbScrapper():
     @staticmethod
     def get_rate(tv_id):
@@ -219,11 +255,15 @@ def get_args():
     return args
 
 def mainMenu():
+    global WATCHLIST_FILE
+
     print("")
     print("===> Main Menu <===")
-    print("1. Check a series title")
+    print("1. Check a title")
     print("2. Check a watch list or add a title to a watch list")
-    print("3. Check the titles in a watchlist")
+    print("3. Remove a title from a watchlist")
+    print("4. Change the default watchlist")
+    print("5. Check the titles in a watchlist")
     print("0. Exit")
     print("")
     print("[>] Please enter a number.")
@@ -245,6 +285,28 @@ def mainMenu():
             watch_list_filename = WATCHLIST_FILE
         menu_args.watch_list = watch_list_filename
     elif menu == '3':
+        watch_list_filename = input("[?] Watch List Filename (default: "+WATCHLIST_FILE+"): ")
+        if not watch_list_filename:
+            watch_list_filename = WATCHLIST_FILE
+        title_input = input("[?] Title Name: ")
+        if title_input:
+            wl = WatchList(watch_list_filename)
+            _rm = wl.Remove(title_input)
+            if _rm[0] is not False:
+                print("[+] Title (",title_input,") found and has been removed from your watchlist (",watch_list_filename,")")
+                pp.pprint(_rm[1])
+            else:
+                print("[!] Title (",title_input,") was not found in your watchlist (",watch_list_filename,")")
+    elif menu == '4':
+        new_default_watchlist_filename = input("[?] Your New Default Watch List Filename (e.g. watchlist-2.json): ")
+        if checkWatchList(new_default_watchlist_filename):
+            with open(DEFAULT_WATCHLIST_FILE, 'wt') as file:
+                file.write(new_default_watchlist_filename)
+            WATCHLIST_FILE = getDefaultWatchList()
+            print("[+] Your default watchlist has been changed to the new one.")
+        else:
+            print("[-] This watchlist file does not exist.")
+    elif menu == '5':
         watch_list_filename = input("[?] Watch List Filename (default: "+WATCHLIST_FILE+"): ")
         if not watch_list_filename:
             watch_list_filename = WATCHLIST_FILE
@@ -279,11 +341,11 @@ def main(args=None):
     if args.watch_list:
         wl = WatchList(args.watch_list)
         print("===> Your WatchList <===")
-        print(wl.List())
+        pp.pprint(wl.List())
         print("")
         print("Add a series to the watch list or just click enter to cancel.")
         title_input = input("[?] Please enter the title: ")
-        if title_input: print(wl.Append(title_input))
+        if title_input: pp.pprint(wl.Append(title_input))
     elif args.series:
         if args.series:
             what_site = input("[?] Choose a website to get the data from ([I]mdb / [R]ottenTomatoes): ")
